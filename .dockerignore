@@ -1,0 +1,8 @@
+CSharp/
+.git
+.gitignore
+.gitattributes
+README.md
+*.md
+**/__pycache__
+**/.vscode
