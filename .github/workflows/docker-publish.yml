@@ -64,7 +64,8 @@ jobs:
       - name: Deploy to server
         run: |
           ssh ${{ secrets.DEPLOY_USER }}@deploy.prestonpercival.com "
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
             cd ~/home-lab/services/beer-recommender && \
-            docker compose pull && \
-            docker compose up -d
+            docker compose --env-file ../../.env pull && \
+            docker compose --env-file ../../.env up -d
           "
