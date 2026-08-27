@@ -39,24 +39,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # THERE IS NO `deploy` JOB ANY MORE, and that is deliberate rather than lost.
+  # There is deliberately no `deploy` job here.
   #
-  # It ssh'd to the shared production box and ran, in this order:
+  # One existed and installed this image onto a host that no longer runs the service. The last
+  # successful deploy was 2026-04-08; the service was retired from that host afterwards and this
+  # workflow was not updated, so the job could only fail. Nothing had been pushed here since, which
+  # is why it went unnoticed.
   #
-  #     docker login ghcr.io …          <- rewrote THAT BOX'S registry credential
-  #     cd ~/home-lab/services/beer-recommender
+  # The image is still built and pushed to ghcr.io by the job above.
   #
-  # That directory no longer exists. The service was hosted there once - the last run, 2026-04-08,
-  # genuinely deployed - and was retired from the box afterwards without this workflow being told.
-  # Nothing has been pushed here since, which is the only reason it has not been noticed.
-  #
-  # The next push would have re-pointed the production box's `~/.docker/config.json` at whatever
-  # `GHCR_PAT` currently is, and only then failed on the missing directory. Rewriting a shared box's
-  # credentials as a side effect of a deploy that cannot succeed is worth removing rather than
-  # repairing, and the failure would have named the `cd` rather than the login.
-  #
-  # The image is still built and pushed to ghcr.io by the job above; only the install is gone.
-  #
-  # TO HOST THIS AGAIN, both halves land together: a `services/beer-recommender/` directory with a
-  # compose file in percival-realm/home-lab, and this job restored. One without the other is the
-  # state being removed here.
+  # To host this again, restore the job together with the hosting configuration it expects — one
+  # without the other is the state that was removed.
