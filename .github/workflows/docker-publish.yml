@@ -39,33 +39,24 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install cloudflared
-        run: |
-          curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
-          chmod +x /usr/local/bin/cloudflared
-
-      - name: Configure SSH over Cloudflare Tunnel
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          cat > ~/.ssh/config << EOF
-          Host deploy.prestonpercival.com
-            ProxyCommand cloudflared access ssh --hostname %h
-            IdentityFile ~/.ssh/deploy_key
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
-          EOF
-
-      - name: Deploy to server
-        run: |
-          ssh ${{ secrets.DEPLOY_USER }}@deploy.prestonpercival.com "
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin && \
-            cd ~/home-lab/services/beer-recommender && \
-            docker compose --env-file ../../.env pull && \
-            docker compose --env-file ../../.env up -d
-          "
+  # THERE IS NO `deploy` JOB ANY MORE, and that is deliberate rather than lost.
+  #
+  # It ssh'd to the shared production box and ran, in this order:
+  #
+  #     docker login ghcr.io …          <- rewrote THAT BOX'S registry credential
+  #     cd ~/home-lab/services/beer-recommender
+  #
+  # That directory no longer exists. The service was hosted there once - the last run, 2026-04-08,
+  # genuinely deployed - and was retired from the box afterwards without this workflow being told.
+  # Nothing has been pushed here since, which is the only reason it has not been noticed.
+  #
+  # The next push would have re-pointed the production box's `~/.docker/config.json` at whatever
+  # `GHCR_PAT` currently is, and only then failed on the missing directory. Rewriting a shared box's
+  # credentials as a side effect of a deploy that cannot succeed is worth removing rather than
+  # repairing, and the failure would have named the `cd` rather than the login.
+  #
+  # The image is still built and pushed to ghcr.io by the job above; only the install is gone.
+  #
+  # TO HOST THIS AGAIN, both halves land together: a `services/beer-recommender/` directory with a
+  # compose file in percival-realm/home-lab, and this job restored. One without the other is the
+  # state being removed here.
